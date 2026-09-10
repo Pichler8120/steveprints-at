@@ -1,0 +1,18 @@
+name = "steveprints"
+type = "javascript"
+account_id = ""
+workers_dev = false
+routes = []
+zone_id = ""
+
+# Cloudflare Pages Konfiguration
+[env.production]
+routes = [
+  { pattern = "steveprints.at", zone_name = "steveprints.at" },
+  { pattern = "www.steveprints.at", zone_name = "steveprints.at" }
+]
+
+# Build-Konfiguration für Cloudflare Pages
+[build]
+command = "echo 'No build needed - static site'"
+watch_paths = ["steveprints.html", "images/**"]

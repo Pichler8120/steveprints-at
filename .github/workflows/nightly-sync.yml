@@ -1,0 +1,39 @@
+name: Nightly Etsy Sync
+
+on:
+  schedule:
+    # Jeden Tag um 02:00 UTC (03:00 CEST im Winter, 04:00 MESZ im Sommer)
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Manuell auslösbar
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Run Etsy Sync
+        env:
+          ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+        run: python3 etsy_sync.py
+
+      - name: Commit and push changes
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add -A
+          if git diff --quiet --cached; then
+            echo "Keine Änderungen"
+          else
+            git commit -m "Update: Etsy-Produkte synchronisiert ($(date -u +'%Y-%m-%d %H:%M:%S UTC'))"
+            git push
+          fi
