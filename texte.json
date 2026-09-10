@@ -1,0 +1,27 @@
+{
+  "_hinweis": "Hier bestimmst du, wie die Produkte auf der Website heissen. name = Ueberschrift, text = Satz darunter, info = Zeile links unten, preis_ab = true, wenn der Preis je nach Variante steigt. Neue Etsy-Produkte werden beim naechsten Lauf automatisch ergaenzt.",
+  "4569972046": {
+    "name": "Deko Kürbisse 3er Set",
+    "text": "Deko-Kürbisse im skandinavischen Stil – 3er Set in Ivory, Sand &amp; Terracotta",
+    "info": "10 verfügbar",
+    "preis_ab": false
+  },
+  "4566170874": {
+    "name": "Dekoschale Herbst",
+    "text": "Schlichte Formen, ein bisschen Natur und viel Platz für eigene Deko.",
+    "info": "1 verfügbar",
+    "preis_ab": false
+  },
+  "4563866886": {
+    "name": "Kürbis Serviettenring",
+    "text": "Mach aus einer einfachen Serviette einen echten Hingucker.",
+    "info": "6 verfügbar",
+    "preis_ab": true
+  },
+  "4475686754": {
+    "name": "Osterhase",
+    "text": "Dieser minimalistische Osterhase ist mehr als nur Deko – er ist ein echter Hingucker für dein Zuhause.",
+    "info": "1 verfügbar",
+    "preis_ab": false
+  }
+}
