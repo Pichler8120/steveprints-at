@@ -1,18 +1,16 @@
-name = "steveprints"
+name = "steveprints-at"
 type = "javascript"
-account_id = ""
-workers_dev = false
-routes = []
-zone_id = ""
+main = "src/index.js"
+compatibility_date = "2024-12-02"
 
-# Cloudflare Pages Konfiguration
+[site]
+bucket = "."
+
+[build]
+command = "echo 'Static site'"
+
 [env.production]
 routes = [
   { pattern = "steveprints.at", zone_name = "steveprints.at" },
   { pattern = "www.steveprints.at", zone_name = "steveprints.at" }
 ]
-
-# Build-Konfiguration für Cloudflare Pages
-[build]
-command = "echo 'No build needed - static site'"
-watch_paths = ["steveprints.html", "images/**"]
