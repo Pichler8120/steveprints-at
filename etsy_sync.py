@@ -24,7 +24,7 @@ import urllib.request
 # ----------------------------------------------------------------- Einstellungen
 
 SHOP_ID = 64420903                 # StevePrintsAT
-SITE_FILE = "steveprints.html"     # wird direkt bearbeitet
+SITE_FILE = "index.html"           # wird direkt bearbeitet
 DATA_FILE = "products.json"        # Rohdaten, praktisch zum Nachschauen
 TEXT_FILE = "texte.json"           # deine eigenen Namen und Kurztexte
 IMAGES_DIR = "images"              # Ordner fuer heruntergeladene Bilder
