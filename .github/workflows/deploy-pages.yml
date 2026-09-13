@@ -19,10 +19,13 @@ jobs:
           node-version: '22'
 
       - name: Install wrangler
-        run: npm install -g wrangler
+        run: npm install -g @cloudflare/wrangler
 
       - name: Deploy to Cloudflare Pages
-        run: wrangler pages deploy . --project-name=steveprints-at
+        run: |
+          npx wrangler pages deploy . \
+            --project-name=steveprints-at \
+            --branch=main
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
