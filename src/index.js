@@ -1,5 +1,5 @@
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
     let pathname = url.pathname;
 
@@ -8,48 +8,32 @@ export default {
       pathname = '/index.html';
     }
 
-    // Fetch vom GitHub Repository
-    const ghUrl = `https://raw.githubusercontent.com/Pichler8120/steveprints-at/main${pathname}`;
-
     try {
-      const response = await fetch(ghUrl);
+      // Serve lokale assets via Cloudflare
+      const assetResponse = await env.ASSETS.fetch(new Request(`http://assets${pathname}`, request));
 
-      if (response.status === 404) {
-        return new Response('Not found', { status: 404 });
+      if (assetResponse.status === 404) {
+        return assetResponse;
       }
 
-      // Content-Type setzen
-      const contentType = getContentType(pathname);
-      const headers = new Headers();
-      headers.set('Content-Type', contentType);
+      const headers = new Headers(assetResponse.headers);
 
-      // Entferne restriktive CSP-Header von GitHub
+      // Entferne restriktive CSP-Header
       headers.delete('Content-Security-Policy');
       headers.delete('X-Content-Security-Policy');
+      headers.delete('content-security-policy');
 
-      // Setze lockere CSP für modernes Webdesign
-      headers.set('Content-Security-Policy', "default-src *; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'; img-src * data:; font-src * data:; connect-src *");
-      headers.set('X-Content-Type-Options', 'nosniff');
-      headers.set('X-Frame-Options', 'SAMEORIGIN');
-      headers.set('Cache-Control', 'public, max-age=60');
-
-      // Wenn es HTML ist: Body modifizieren um CSP-Meta-Tags zu entfernen
+      // Setze lockere CSP nur für HTML
       if (pathname.endsWith('.html')) {
-        const htmlText = await response.text();
-
-        // Entferne CSP-Meta-Tags aus dem HTML
-        const cleanedHtml = htmlText
-          .replace(/<meta\s+http-equiv=['"]*Content-Security-Policy['"]*[^>]*>/gi, '')
-          .replace(/<meta\s+content=[^>]*http-equiv=['"]*Content-Security-Policy['"]*[^>]*>/gi, '');
-
-        return new Response(cleanedHtml, {
-          status: response.status,
-          headers: headers
-        });
+        headers.set('Content-Security-Policy', "default-src *; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'; img-src * data:; font-src * data:; connect-src *");
       }
 
-      return new Response(response.body, {
-        status: response.status,
+      headers.set('X-Content-Type-Options', 'nosniff');
+      headers.set('X-Frame-Options', 'SAMEORIGIN');
+      headers.set('Cache-Control', 'public, max-age=3600');
+
+      return new Response(assetResponse.body, {
+        status: assetResponse.status,
         headers: headers
       });
     } catch (e) {
@@ -57,16 +41,3 @@ export default {
     }
   }
 };
-
-function getContentType(pathname) {
-  if (pathname.endsWith('.html')) return 'text/html; charset=utf-8';
-  if (pathname.endsWith('.css')) return 'text/css';
-  if (pathname.endsWith('.js')) return 'application/javascript';
-  if (pathname.endsWith('.json')) return 'application/json';
-  if (pathname.endsWith('.svg')) return 'image/svg+xml';
-  if (pathname.endsWith('.png')) return 'image/png';
-  if (pathname.endsWith('.jpg') || pathname.endsWith('.jpeg')) return 'image/jpeg';
-  if (pathname.endsWith('.gif')) return 'image/gif';
-  if (pathname.endsWith('.txt')) return 'text/plain';
-  return 'application/octet-stream';
-}
