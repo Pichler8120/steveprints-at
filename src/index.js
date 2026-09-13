@@ -20,8 +20,18 @@ export default {
 
       // Content-Type setzen
       const contentType = getContentType(pathname);
-      const headers = new Headers(response.headers);
+      const headers = new Headers();
       headers.set('Content-Type', contentType);
+
+      // Sicherheits-Headers setzen (CSP mit lockern Inlineregeln)
+      headers.set('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.etsy.com");
+      headers.set('X-Content-Type-Options', 'nosniff');
+      headers.set('X-Frame-Options', 'SAMEORIGIN');
+
+      // Cache-Control für statische Assets
+      if (pathname.match(/\.(jpg|jpeg|png|gif|css|js|svg)$/)) {
+        headers.set('Cache-Control', 'public, max-age=3600');
+      }
 
       return new Response(response.body, {
         status: response.status,
