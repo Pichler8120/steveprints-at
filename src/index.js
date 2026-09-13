@@ -23,15 +23,17 @@ export default {
       const headers = new Headers();
       headers.set('Content-Type', contentType);
 
-      // Sicherheits-Headers setzen (CSP mit lockern Inlineregeln)
-      headers.set('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.etsy.com");
+      // Entferne restriktive CSP-Header von GitHub
+      headers.delete('Content-Security-Policy');
+      headers.delete('X-Content-Security-Policy');
+
+      // Setze lockere CSP für modernes Webdesign
+      headers.set('Content-Security-Policy', "default-src *; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'; img-src * data:; font-src * data:; connect-src *");
       headers.set('X-Content-Type-Options', 'nosniff');
       headers.set('X-Frame-Options', 'SAMEORIGIN');
 
-      // Cache-Control für statische Assets
-      if (pathname.match(/\.(jpg|jpeg|png|gif|css|js|svg)$/)) {
-        headers.set('Cache-Control', 'public, max-age=3600');
-      }
+      // Cache-Control kurz halten für schnelle Updates
+      headers.set('Cache-Control', 'public, max-age=60');
 
       return new Response(response.body, {
         status: response.status,
