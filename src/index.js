@@ -31,9 +31,22 @@ export default {
       headers.set('Content-Security-Policy', "default-src *; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'; img-src * data:; font-src * data:; connect-src *");
       headers.set('X-Content-Type-Options', 'nosniff');
       headers.set('X-Frame-Options', 'SAMEORIGIN');
-
-      // Cache-Control kurz halten für schnelle Updates
       headers.set('Cache-Control', 'public, max-age=60');
+
+      // Wenn es HTML ist: Body modifizieren um CSP-Meta-Tags zu entfernen
+      if (pathname.endsWith('.html')) {
+        const htmlText = await response.text();
+
+        // Entferne CSP-Meta-Tags aus dem HTML
+        const cleanedHtml = htmlText
+          .replace(/<meta\s+http-equiv=['"]*Content-Security-Policy['"]*[^>]*>/gi, '')
+          .replace(/<meta\s+content=[^>]*http-equiv=['"]*Content-Security-Policy['"]*[^>]*>/gi, '');
+
+        return new Response(cleanedHtml, {
+          status: response.status,
+          headers: headers
+        });
+      }
 
       return new Response(response.body, {
         status: response.status,
