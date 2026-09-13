@@ -1,43 +1,39 @@
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
-    let pathname = url.pathname;
-
-    // Root / → index.html
-    if (pathname === '/' || pathname === '') {
-      pathname = '/index.html';
-    }
+    // Versuche die statische Datei zu servieren
+    let response;
 
     try {
-      // Serve lokale assets via Cloudflare
-      const assetResponse = await env.ASSETS.fetch(new Request(`http://assets${pathname}`, request));
-
-      if (assetResponse.status === 404) {
-        return assetResponse;
-      }
-
-      const headers = new Headers(assetResponse.headers);
-
-      // Entferne restriktive CSP-Header
-      headers.delete('Content-Security-Policy');
-      headers.delete('X-Content-Security-Policy');
-      headers.delete('content-security-policy');
-
-      // Setze lockere CSP nur für HTML
-      if (pathname.endsWith('.html')) {
-        headers.set('Content-Security-Policy', "default-src *; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'; img-src * data:; font-src * data:; connect-src *");
-      }
-
-      headers.set('X-Content-Type-Options', 'nosniff');
-      headers.set('X-Frame-Options', 'SAMEORIGIN');
-      headers.set('Cache-Control', 'public, max-age=3600');
-
-      return new Response(assetResponse.body, {
-        status: assetResponse.status,
-        headers: headers
-      });
+      response = await env.ASSETS.fetch(request);
     } catch (e) {
-      return new Response('Error: ' + e.message, { status: 500 });
+      // Fallback wenn env.ASSETS nicht verfügbar
+      return new Response('ASSETS binding not configured', { status: 500 });
     }
+
+    if (!response) {
+      return new Response('Not found', { status: 404 });
+    }
+
+    // Neuer Response mit modifizierten Headers
+    const headers = new Headers(response.headers);
+
+    // Entferne GitHub CSP
+    headers.delete('Content-Security-Policy');
+    headers.delete('content-security-policy');
+    headers.delete('X-Content-Security-Policy');
+
+    // Setze lockere CSP
+    headers.set('Content-Security-Policy', "default-src *; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'; img-src * data:; font-src * data:; connect-src *; frame-src *");
+
+    // Security Headers
+    headers.set('X-Content-Type-Options', 'nosniff');
+    headers.set('X-Frame-Options', 'SAMEORIGIN');
+    headers.set('Cache-Control', 'public, max-age=3600');
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: headers
+    });
   }
 };
