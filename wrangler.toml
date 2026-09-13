@@ -1,16 +1,14 @@
+# Cloudflare Pages Konfiguration für StevePrints
 name = "steveprints-at"
 type = "javascript"
-main = "src/index.js"
 compatibility_date = "2024-12-02"
 
-[site]
-bucket = "."
-
-[build]
-command = "echo 'Static site'"
-
+# Production Environment mit Custom Domains
 [env.production]
 routes = [
   { pattern = "steveprints.at", zone_name = "steveprints.at" },
   { pattern = "www.steveprints.at", zone_name = "steveprints.at" }
 ]
+
+# Pages deployment config
+pages_build_output_dir = "."
