@@ -28,24 +28,23 @@ git push -u origin main
 
 ### 3. Cloudflare Pages aufsetzen
 
-1. Bei [Cloudflare Dashboard](https://dash.cloudflare.com) anmelden
-2. **Pages** → Connect to Git
-   - GitHub-Repo wählen: `steveprints-at`
-   - Production branch: `main`
-   - Build command: `echo 'Static site'`
-   - Build output directory: `.`
+Das Deployment läuft über `.github/workflows/deploy-pages.yml` (Direct Upload via `wrangler`), nicht über die "Connect to Git" Integration.
 
+1. GitHub Secrets anlegen (Repo → Settings → Secrets and variables → Actions):
+   - `CLOUDFLARE_API_TOKEN` (Cloudflare Dashboard → API-Token des Kontos → Token mit "Edit Cloudflare Workers"-Vorlage)
+   - `CLOUDFLARE_ACCOUNT_ID` (Cloudflare Dashboard → Account verwalten → Account ID)
+2. Push auf `main` löst automatisch einen Deploy zum Pages-Projekt `steveprints-at` aus
 3. **Domain verbinden:**
    - Deine Domäne `steveprints.at` ist bei helloly registriert
-   - In Cloudflare: Zone hinzufügen → `steveprints.at`
-   - Nameserver bei helloly ändern auf Cloudflare-Server (werden angezeigt)
-   - Dann Custom Domain in Pages hinzufügen
+   - In Cloudflare: Domains → Domain verbinden → `steveprints.at` (DNS-Einträge automatisch importieren)
+   - Nameserver bei helloly auf die von Cloudflare angezeigten Werte ändern (dauert bis zu 24-48h)
+   - Danach im Pages-Projekt unter "Benutzerdefinierte Domains" → `steveprints.at` hinzufügen
 
 ### 4. Nightly Sync
 
 Der GitHub Actions Workflow `.github/workflows/nightly-sync.yml`:
 - Läuft täglich um **02:00 UTC** (3:00 CEST)
-- Ruft Etsy-API auf → `steveprints.html` aktualisiert
+- Ruft Etsy-API auf → `index.html` aktualisiert
 - Bilder werden in `images/` gespeichert
 - Committed Änderungen automatisch zurück ins Repo
 - **Cloudflare Pages wird automatisch neu deployed**
@@ -57,27 +56,27 @@ Der GitHub Actions Workflow `.github/workflows/nightly-sync.yml`:
 python3 etsy_sync.py
 
 # Website öffnen
-open steveprints.html  # macOS
-start steveprints.html  # Windows
-xdg-open steveprints.html  # Linux
+open index.html  # macOS
+start index.html  # Windows
+xdg-open index.html  # Linux
 ```
 
 ## 📁 Dateistruktur
 
 ```
 steveprints-at/
-├── steveprints.html          # Deine Website (wird durch Sync aktualisiert)
-├── etsy_sync.py              # Sync-Script
-├── etsy_key.txt              # ⚠️  NICHT commiten (in .gitignore)
-├── texte.json                # Produktnamen/Texte (bearbeitbar)
-├── products.json             # Rohdaten von Etsy
-├── images/                   # Heruntergeladene Produktbilder
+├── index.html              # Deine Website (wird durch Sync aktualisiert)
+├── etsy_sync.py            # Sync-Script
+├── etsy_key.txt            # ⚠️  NICHT commiten (in .gitignore)
+├── texte.json              # Produktnamen/Texte (bearbeitbar)
+├── products.json           # Rohdaten von Etsy
+├── images/                 # Heruntergeladene Produktbilder
 │   └── *.jpg
 ├── .github/workflows/
-│   └── nightly-sync.yml      # GitHub Actions Workflow
-├── .gitignore                # Secrets ausschließen
-├── wrangler.toml             # Cloudflare Pages Config
-└── README.md                 # Diese Datei
+│   ├── nightly-sync.yml    # Etsy-Sync Workflow
+│   └── deploy-pages.yml    # Cloudflare Pages Deploy Workflow
+├── .gitignore               # Secrets ausschließen
+└── README.md                # Diese Datei
 ```
 
 ## ✍️ Produkttexte anpassen
