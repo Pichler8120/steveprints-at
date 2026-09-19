@@ -4,10 +4,19 @@ on:
   push:
     branches:
       - main
+  # Commits des Nightly-Sync (GITHUB_TOKEN) lösen kein push-Event aus, daher auf dessen Abschluss reagieren
+  workflow_run:
+    workflows: ["Nightly Etsy Sync"]
+    types: [completed]
   workflow_dispatch:
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
