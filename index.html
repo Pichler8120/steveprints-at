@@ -53,24 +53,38 @@
 
 <section class="print" aria-labelledby="print-title">
   <!-- PRINT:START -->
-  <div class="print-stage" style="--layers:276">
+  <div class="print-stage" id="print" style="--layers:312">
     <div class="print-copy">
       <p class="eyebrow">Live aus der Werkstatt</p>
       <h2 id="print-title" class="display">Scroll – und es wird gedruckt.</h2>
       <div class="layer-count">
         <span class="lbl">SCHICHT</span>
-        <span class="num"><span class="static">276</span></span>
-        <span class="tot">/ 276</span>
+        <span class="num"><span class="static">312</span></span>
+        <span class="tot">/ 312</span>
       </div>
-      <p class="print-done"><strong>Fertig.</strong> Osterhase, 0,2&nbsp;mm pro Schicht, gedruckt in Peggau – und genau so entsteht jedes Stück, das du bei mir bestellst.</p>
+      <p class="print-done"><strong>Fertig.</strong> <span class="pname">Nordic Pumpkins</span>, 0,2&nbsp;mm pro Schicht, gedruckt in Peggau – und genau so entsteht jedes Stück, das du bei mir bestellst.</p>
     </div>
     <div class="print-bed">
       <div class="grid" aria-hidden="true"></div>
-      <img src="images/0c614153a8a71292.jpg" alt="Osterhase, Schicht für Schicht gedruckt" loading="lazy" decoding="async">
+      <img src="images/8dfc89507ad61327.jpg" alt="Deko Kürbisse 3er Set, Schicht für Schicht gedruckt" loading="lazy" decoding="async">
       <div class="lines" aria-hidden="true"></div>
       <div class="nozzle" aria-hidden="true"><div class="beam"></div><div class="tip"></div></div>
     </div>
   </div>
+  <script>
+    (function () {
+      var pool = [{"img": "images/0c614153a8a71292.jpg", "name": "Osterhase", "alt": "Osterhase, Schicht für Schicht gedruckt", "n": 276}, {"img": "images/d9b218a43e603109.jpg", "name": "Kürbis Serviettenring", "alt": "Kürbis Serviettenring, Schicht für Schicht gedruckt", "n": 290}, {"img": "images/d3324da833138ca8.jpg", "name": "Dekoschale Herbst", "alt": "Dekoschale Herbst, Schicht für Schicht gedruckt", "n": 241}, {"img": "images/8dfc89507ad61327.jpg", "name": "Nordic Pumpkins", "alt": "Deko Kürbisse 3er Set, Schicht für Schicht gedruckt", "n": 312}, {"img": "images/f66b34dcbb70df60.jpg", "name": "Igel Zahnstocherhalter", "alt": "Igel Zahnstocherhalter, Schicht für Schicht gedruckt", "n": 264}, {"img": "images/9b4b52cf739451d4.jpg", "name": "Deko-Eicheln Set", "alt": "Deko-Eicheln Set, Schicht für Schicht gedruckt", "n": 252}, {"img": "images/f582bd6374a5012e.jpg", "name": "Tannenzapfen Kranz", "alt": "Tannenzapfen Kranz aus dem 3D-Druck, Schicht für Schicht gedruckt", "n": 268}, {"img": "images/3537206bd146ee65.jpg", "name": "Sonnenblume", "alt": "Dekoschale Sonnenblume, Schicht für Schicht gedruckt", "n": 230}, {"img": "images/c0b137977a3b6f1d.jpg", "name": "Schneeflocke", "alt": "Schneeflocken Serviettenring, Schicht für Schicht gedruckt", "n": 183}];
+      var p = pool[Math.floor(Math.random() * pool.length)];
+      var s = document.getElementById('print');
+      s.style.setProperty('--layers', p.n);
+      s.querySelector('.static').textContent = p.n;
+      s.querySelector('.tot').textContent = '/ ' + p.n;
+      s.querySelector('.pname').textContent = p.name;
+      var img = s.querySelector('.print-bed img');
+      img.src = p.img;
+      img.alt = p.alt;
+    })();
+  </script>
   <!-- PRINT:END -->
 </section>
 

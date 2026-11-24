@@ -135,7 +135,7 @@ Scroll-Animationen sind reines CSS und nur aktiv, wenn der Browser `animation-ti
 
 ### Druck-Effekt („Scroll – und es wird gedruckt“)
 
-Jeden Tag zeigt der Sync ein anderes Produkt (reihum, nach Datum). Steuerung in `texte.json`:
+Bei jedem Seitenaufruf wählt ein kleines Inline-Skript zufällig ein Produkt (keine Cookies, keine externen Verbindungen). Ohne JavaScript bleibt Highlight 1 stehen. `index.html` ändert sich dadurch nur, wenn sich Produkte ändern. Steuerung in `texte.json`:
 
 - **druck**: `false` nimmt ein Produkt aus der Rotation (z.B. Osterhase im Winter)
 - **druck_schichten**: eigene Schichtzahl (sonst eine feste Zahl je Produkt zwischen 180 und 420)

@@ -21,11 +21,10 @@ Seitenaufbau (Design "Galerie"):
     HERO        Bild-Collage oben  = Highlights 1, 3, 2
     HIGHLIGHTS  4 grosse gestapelte Karten = Produkte mit "highlight": 1-4 in texte.json
     PRODUCTS    Kacheln "Ausserdem im Shop" = alle uebrigen aktiven Produkte
-    PRINT       Druck-Effekt: jeden Tag ein anderes Produkt (Rotation nach Datum)
+    PRINT       Druck-Effekt: bei jedem Seitenaufruf ein zufaelliges Produkt
 """
 
 import argparse
-import datetime
 import difflib
 import html
 import hashlib
@@ -247,7 +246,7 @@ def merge_texts(listings):
         "Produkte erscheinen als Kacheln unter 'Ausserdem im Shop'."
     ))
     texts.setdefault("_hinweis_druck", (
-        "Druck-Effekt ('Scroll - und es wird gedruckt'): jeden Tag ein anderes Produkt. "
+        "Druck-Effekt ('Scroll - und es wird gedruckt'): bei jedem Aufruf ein zufaelliges Produkt. "
         "druck = false nimmt ein Produkt aus der Rotation, druck_schichten = eigene "
         "Schichtzahl (sonst eine feste Zahl je Produkt), druck_bild = welches Etsy-Foto "
         "(1 = erstes)."
@@ -371,47 +370,68 @@ def layer_count(listing, entry):
     return lo + int.from_bytes(digest[:4], "big") % (hi - lo + 1)
 
 
-def print_block(listings, texts, day=None):
-    """Druck-Effekt: Produkt des Tages, reihum durch alle Produkte mit Bild (ohne druck = false)."""
+def print_block(listings, texts):
+    """Druck-Effekt: Alle Produkte (ohne druck = false) stehen als Liste in der Seite,
+    ein kleines Skript waehlt beim Oeffnen zufaellig eines aus. Ohne JavaScript bleibt
+    das Standard-Produkt (Highlight 1) stehen. index.html aendert sich dadurch nur,
+    wenn sich die Produkte aendern - nicht jeden Tag."""
     pool = []
     for l in sorted(listings, key=lambda x: x["listing_id"]):  # stabile Reihenfolge
         entry = texts.get(str(l["listing_id"]), {})
         if entry.get("druck") is False or not l.get("images"):
             continue
-        pool.append((l, entry))
+        try:
+            img_index = max(int(entry.get("druck_bild") or 1) - 1, 0)
+        except (TypeError, ValueError):
+            img_index = 0
+        images = l["images"]
+        pool.append({
+            "img": images[img_index] if img_index < len(images) else images[0],
+            "name": html.unescape(entry.get("highlight_name") or entry.get("name") or short_name(l)),
+            "alt": html.unescape(entry.get("name") or short_name(l)) + ", Schicht für Schicht gedruckt",
+            "n": layer_count(l, entry),
+            "hl": str(entry.get("highlight") or "") == "1",
+        })
     if not pool:
         return ""
-    day = day or datetime.date.today()
-    l, entry = pool[day.toordinal() % len(pool)]
-
-    try:
-        img_index = max(int(entry.get("druck_bild") or 1) - 1, 0)
-    except (TypeError, ValueError):
-        img_index = 0
-    images = l["images"]
-    img = images[img_index] if img_index < len(images) else images[0]
-    name = esc(entry.get("highlight_name") or entry.get("name") or short_name(l))
-    alt = esc(entry.get("name") or short_name(l))
-    n = layer_count(l, entry)
+    first = next((p for p in pool if p["hl"]), pool[0])
+    for p in pool:
+        del p["hl"]
+    data = json.dumps(pool, ensure_ascii=False).replace("</", "<\\/")
+    n = first["n"]
     return f"""{PRINT_START}
-  <div class="print-stage" style="--layers:{n}">
+  <div class="print-stage" id="print" style="--layers:{n}">
     <div class="print-copy">
       <p class="eyebrow">Live aus der Werkstatt</p>
-      <h2 id="print-title" class="display">Scroll \u2013 und es wird gedruckt.</h2>
+      <h2 id="print-title" class="display">Scroll – und es wird gedruckt.</h2>
       <div class="layer-count">
         <span class="lbl">SCHICHT</span>
         <span class="num"><span class="static">{n}</span></span>
         <span class="tot">/ {n}</span>
       </div>
-      <p class="print-done"><strong>Fertig.</strong> {name}, {LAYER_HEIGHT}&nbsp;mm pro Schicht, gedruckt in Peggau \u2013 und genau so entsteht jedes St\u00fcck, das du bei mir bestellst.</p>
+      <p class="print-done"><strong>Fertig.</strong> <span class="pname">{esc(first["name"])}</span>, {LAYER_HEIGHT}&nbsp;mm pro Schicht, gedruckt in Peggau – und genau so entsteht jedes Stück, das du bei mir bestellst.</p>
     </div>
     <div class="print-bed">
       <div class="grid" aria-hidden="true"></div>
-      <img src="{img}" alt="{alt}, Schicht f\u00fcr Schicht gedruckt" loading="lazy" decoding="async">
+      <img src="{first["img"]}" alt="{esc(first["alt"])}" loading="lazy" decoding="async">
       <div class="lines" aria-hidden="true"></div>
       <div class="nozzle" aria-hidden="true"><div class="beam"></div><div class="tip"></div></div>
     </div>
   </div>
+  <script>
+    (function () {{
+      var pool = {data};
+      var p = pool[Math.floor(Math.random() * pool.length)];
+      var s = document.getElementById('print');
+      s.style.setProperty('--layers', p.n);
+      s.querySelector('.static').textContent = p.n;
+      s.querySelector('.tot').textContent = '/ ' + p.n;
+      s.querySelector('.pname').textContent = p.name;
+      var img = s.querySelector('.print-bed img');
+      img.src = p.img;
+      img.alt = p.alt;
+    }})();
+  </script>
   {PRINT_END}"""
 
 
@@ -492,9 +512,7 @@ def main():
     for l in rest:
         print(f"  \u00b7 {entry(l).get('name', '')}  {price(l, entry(l))}")
     if printed:
-        today = re.search(r"--layers:(\d+)", printed).group(1)
-        who = re.search(r'alt="(.*?), Schicht', printed).group(1)
-        print(f"\nDruck-Effekt heute: {html.unescape(who)} ({today} Schichten)")
+        print(f"\nDruck-Effekt: {printed.count(chr(34) + 'n' + chr(34) + ':')} Produkte in der Zufallsauswahl")
     if len(highlights) < MAX_HIGHLIGHTS:
         print(f"\nHinweis: nur {len(highlights)} von {MAX_HIGHLIGHTS} Highlights aktiv "
               f"(\"highlight\": 1-{MAX_HIGHLIGHTS} in {TEXT_FILE} setzen).")
