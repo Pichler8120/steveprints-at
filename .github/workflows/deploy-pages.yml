@@ -33,11 +33,14 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
+      # Nur der Branch "main" ist Produktion (--production-branch=main). Andere Branches werden
+      # als Vorschau deployt und aendern steveprints.at nicht. workflow_run laeuft immer auf main.
       - name: Deploy to Cloudflare Pages
         run: |
           npx wrangler@latest pages deploy . \
             --project-name=steveprints-at \
-            --branch=main
+            --branch="$DEPLOY_BRANCH"
         env:
+          DEPLOY_BRANCH: ${{ github.event_name == 'workflow_run' && 'main' || github.ref_name }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

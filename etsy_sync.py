@@ -9,8 +9,22 @@ Aufruf:
     ETSY_API_KEY=dein_key python3 etsy_sync.py
 
 Oder Key in eine Datei "etsy_key.txt" neben dieses Skript legen.
+
+Optionen:
+    --dry-run   nichts schreiben (keine Bilder, kein JSON, keine index.html);
+                zeigt nur, was sich aendern wuerde
+    --offline   Etsy nicht abfragen, sondern products.json vom letzten Lauf nehmen
+                (praktisch, um nach Aenderungen an texte.json oder am Design
+                die Seite neu zu bauen)
+
+Seitenaufbau (Design "Galerie"):
+    HERO        Bild-Collage oben  = Highlights 1, 3, 2
+    HIGHLIGHTS  4 grosse gestapelte Karten = Produkte mit "highlight": 1-4 in texte.json
+    PRODUCTS    Kacheln "Ausserdem im Shop" = alle uebrigen aktiven Produkte
 """
 
+import argparse
+import difflib
 import html
 import hashlib
 import json
@@ -35,6 +49,13 @@ START = "<!-- PRODUCTS:START -->"
 END = "<!-- PRODUCTS:END -->"
 HERO_START = "<!-- HERO:START -->"
 HERO_END = "<!-- HERO:END -->"
+HL_START = "<!-- HIGHLIGHTS:START -->"
+HL_END = "<!-- HIGHLIGHTS:END -->"
+
+# Anzahl der grossen Highlight-Karten (Farbthemen t1-t4 in site.css)
+MAX_HIGHLIGHTS = 4
+
+DRY_RUN = False
 
 # Wie viele Woerter der Etsy-Beschreibung als Kurztext auf die Karte kommen.
 BLURB_WORDS = 26
@@ -91,9 +112,6 @@ def download_image(url):
 
     Gibt den lokalen Pfad zurueck (relativ, fuer die HTML).
     """
-    if not os.path.exists(IMAGES_DIR):
-        os.makedirs(IMAGES_DIR)
-
     # Hash des URLs als Dateiname, um Duplikate zu vermeiden
     filename = hashlib.sha256(url.encode()).hexdigest()[:16] + ".jpg"
     filepath = os.path.join(IMAGES_DIR, filename)
@@ -101,6 +119,13 @@ def download_image(url):
     # Wenn schon heruntergeladen, nicht nochmal anfragen
     if os.path.exists(filepath):
         return f"{IMAGES_DIR}/{filename}"
+
+    if DRY_RUN:
+        print(f"  [dry-run] neues Bild wuerde geladen: {filepath}")
+        return f"{IMAGES_DIR}/{filename}"
+
+    if not os.path.exists(IMAGES_DIR):
+        os.makedirs(IMAGES_DIR)
 
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -206,6 +231,13 @@ def merge_texts(listings):
         "preis_ab = true, wenn der Preis je nach Variante steigt. "
         "Neue Etsy-Produkte werden beim naechsten Lauf automatisch ergaenzt."
     ))
+    texts.setdefault("_hinweis_highlights", (
+        "Grosse Karten oben in der Kollektion: highlight = 1 bis 4 (Reihenfolge), "
+        "kategorie = kleine Zeile oben (z.B. HERBST), highlight_name / highlight_text = "
+        "optional eigener Titel und Text nur fuer die grosse Karte (sonst name / text). "
+        "Die Highlights 1-3 bilden ausserdem die Bild-Collage ganz oben. Alle anderen "
+        "Produkte erscheinen als Kacheln unter 'Ausserdem im Shop'."
+    ))
     added = []
     for l in listings:
         key = str(l["listing_id"])
@@ -217,72 +249,99 @@ def merge_texts(listings):
                 "preis_ab": False,
             }
             added.append(texts[key]["name"])
-    with open(TEXT_FILE, "w", encoding="utf-8") as fh:
-        json.dump(texts, fh, ensure_ascii=False, indent=2)
+    if not DRY_RUN:
+        with open(TEXT_FILE, "w", encoding="utf-8") as fh:
+            json.dump(texts, fh, ensure_ascii=False, indent=2)
     return texts, added
 
 
-def card(listing, entry):
-    url = listing.get("url") or f"https://www.etsy.com/listing/{listing['listing_id']}"
+def esc(value):
+    """Texte aus texte.json duerfen schon Entities enthalten (z.B. &amp;) - nicht doppelt escapen."""
+    return html.escape(html.unescape(value or ""))
+
+
+def listing_url(listing):
+    return listing.get("url") or f"https://www.etsy.com/listing/{listing['listing_id']}"
+
+
+def tile(listing, entry):
+    """Kachel 'Ausserdem im Shop'."""
     images = listing.get("images", [])
     if not images:
         return ""
-
-    name = html.escape(entry.get("name") or short_name(listing))
-    text = html.escape(entry.get("text") or "")
-    info = html.escape(entry.get("info") or "")
-
+    name = esc(entry.get("name") or short_name(listing))
     alt_img = ""
     if len(images) > 1:
-        alt_img = f'\n          <img class="alt" src="{images[1]}" alt="{name} \u2013 zweite Ansicht">'
-
-    return f"""      <a class="card rv" href="{url}" target="_blank" rel="noopener">
+        alt_img = (f'\n          <img class="alt" src="{images[1]}" alt="" '
+                   f'loading="lazy" decoding="async">')
+    return f"""      <a class="tile reveal" href="{listing_url(listing)}" target="_blank" rel="noopener">
         <div class="shot">
-          <img src="{images[0]}" alt="{name}">{alt_img}
+          <img src="{images[0]}" alt="{name}" loading="lazy" decoding="async">{alt_img}
         </div>
-        <h3>{name}</h3>
-        <p class="sub">{text}</p>
-        <div class="meta"><span>{info}</span><span class="price">{price(listing, entry)}</span></div>
-        <span class="go">Auf Etsy ansehen \u2192</span>
+        <div class="row"><span>{name}</span><span class="price">{price(listing, entry)}</span></div>
       </a>"""
 
 
-def hero_block(listings, texts):
-    """Grosses Bild oben: bei jedem Seitenaufruf ein zufaelliges Produkt."""
-    pool = []
+def feature(listing, entry, index):
+    """Grosse gestapelte Highlight-Karte (index 0-3)."""
+    images = listing.get("images", [])
+    if not images:
+        return ""
+    name = esc(entry.get("highlight_name") or entry.get("name") or short_name(listing))
+    text = esc(entry.get("highlight_text") or entry.get("text") or "")
+    cat = esc(entry.get("kategorie") or "")
+    tag = f"{index + 1:02d}" + (f" / {cat}" if cat else "")
+    return f"""      <a class="feature t{index % 4 + 1}" style="--i:{index}" href="{listing_url(listing)}" target="_blank" rel="noopener">
+        <div class="pic"><img src="{images[0]}" alt="{name}" loading="lazy" decoding="async"></div>
+        <div class="body">
+          <span class="tag">{tag}</span>
+          <div class="txt">
+            <h3>{name}</h3>
+            <p>{text}</p>
+          </div>
+          <div class="foot"><span class="price">{price(listing, entry)}</span><span class="go">Auf Etsy ansehen \u2197</span></div>
+        </div>
+      </a>"""
+
+
+def split_highlights(listings, texts):
+    """Teilt in (Highlights nach Nummer sortiert, Rest in Etsy-Reihenfolge)."""
+    ranked = []
     for l in listings:
-        images = l.get("images") or []
-        if not images:
-            continue
         entry = texts.get(str(l["listing_id"]), {})
-        pool.append({
-            "img": images[0],
-            "name": entry.get("name") or short_name(l),
-            "url": l.get("url") or f"https://www.etsy.com/listing/{l['listing_id']}",
-        })
+        try:
+            rank = int(entry.get("highlight") or 0)
+        except (TypeError, ValueError):
+            rank = 0
+        if rank > 0 and l.get("images"):
+            ranked.append((rank, l))
+    ranked.sort(key=lambda t: t[0])
+    highlights = [l for _, l in ranked[:MAX_HIGHLIGHTS]]
+    chosen = {l["listing_id"] for l in highlights}
+    rest = [l for l in listings if l["listing_id"] not in chosen]
+    return highlights, rest
+
+
+def hero_block(highlights, rest, texts):
+    """Collage oben: grosses Bild = Highlight 1, rechts Highlight 3 und 2 (wie im Entwurf)."""
+    pool = [highlights[i] for i in (0, 2, 1) if i < len(highlights)]
+    for l in rest:  # auffuellen, falls weniger als 3 Highlights gesetzt sind
+        if len(pool) >= 3:
+            break
+        if l.get("images"):
+            pool.append(l)
     if not pool:
         return ""
-
-    first = pool[0]
-    data = json.dumps(pool, ensure_ascii=False)
-    return f"""{HERO_START}
-    <figure class="heroshot" style="margin:0">
-      <a href="{first['url']}" target="_blank" rel="noopener" id="heroLink">
-        <img id="heroImg" src="{first['img']}" alt="{html.escape(first['name'])}">
-      </a>
-      <figcaption id="heroCap">{html.escape(first['name'])}</figcaption>
-    </figure>
-    <script>
-      (function(){{
-        var pool = {data};
-        var pick = pool[Math.floor(Math.random() * pool.length)];
-        document.getElementById('heroImg').src = pick.img;
-        document.getElementById('heroImg').alt = pick.name;
-        document.getElementById('heroCap').textContent = pick.name;
-        document.getElementById('heroLink').href = pick.url;
-      }})();
-    </script>
-    {HERO_END}"""
+    items = []
+    for i, l in enumerate(pool):
+        entry = texts.get(str(l["listing_id"]), {})
+        name = esc(entry.get("name") or short_name(l))
+        load = 'fetchpriority="high"' if i == 0 else 'decoding="async"'
+        items.append(
+            f'      <a href="{listing_url(l)}" target="_blank" rel="noopener">'
+            f'<img src="{l["images"][0]}" alt="{name}" {load}></a>'
+        )
+    return HERO_START + "\n" + "\n".join(items) + "\n      " + HERO_END
 
 
 # ----------------------------------------------------------------- Schreiben
@@ -291,43 +350,79 @@ def replace_block(page, start, end, block):
     return re.sub(re.escape(start) + ".*?" + re.escape(end), lambda _: block, page, flags=re.S)
 
 
-def update_site(cards, hero=""):
+def update_site(tiles, features, hero):
     if not os.path.exists(SITE_FILE):
         sys.exit(f"{SITE_FILE} nicht gefunden. Skript in denselben Ordner legen.")
     with open(SITE_FILE, encoding="utf-8") as fh:
-        page = fh.read()
-    if START not in page or END not in page:
-        sys.exit(f"Marker {START} / {END} fehlen in {SITE_FILE}.")
+        old = fh.read()
+    for a, b in ((START, END), (HL_START, HL_END), (HERO_START, HERO_END)):
+        if a not in old or b not in old:
+            sys.exit(f"Marker {a} / {b} fehlen in {SITE_FILE}.")
 
-    block = START + "\n" + "\n\n".join(cards) + "\n      " + END
-    page = replace_block(page, START, END, block)
-    if hero and HERO_START in page and HERO_END in page:
+    page = replace_block(old, START, END, START + "\n" + "\n\n".join(tiles) + "\n      " + END)
+    page = replace_block(page, HL_START, HL_END,
+                         HL_START + "\n" + "\n\n".join(features) + "\n      " + HL_END)
+    if hero:
         page = replace_block(page, HERO_START, HERO_END, hero)
+
+    if DRY_RUN:
+        diff = list(difflib.unified_diff(
+            old.splitlines(), page.splitlines(), SITE_FILE, SITE_FILE + " (neu)", lineterm="", n=1))
+        if diff:
+            print(f"\n[dry-run] {SITE_FILE} wuerde sich so aendern:")
+            print("\n".join(diff))
+        else:
+            print(f"\n[dry-run] {SITE_FILE} bliebe unveraendert.")
+        return
     with open(SITE_FILE, "w", encoding="utf-8") as fh:
         fh.write(page)
 
 
 def main():
-    key = api_key()
-    listings = fetch_listings(key)
+    global DRY_RUN
+    ap = argparse.ArgumentParser(description="Etsy-Produkte in index.html uebernehmen")
+    ap.add_argument("--dry-run", action="store_true", help="nichts schreiben, nur Aenderungen zeigen")
+    ap.add_argument("--offline", action="store_true", help="products.json statt Etsy-API verwenden")
+    args = ap.parse_args()
+    DRY_RUN = args.dry_run
+
+    if args.offline:
+        if not os.path.exists(DATA_FILE):
+            sys.exit(f"{DATA_FILE} fehlt - fuer --offline braucht es einen frueheren Lauf.")
+        with open(DATA_FILE, encoding="utf-8") as fh:
+            listings = json.load(fh)
+    else:
+        listings = fetch_listings(api_key())
     listings.sort(key=lambda l: l.get("original_creation_timestamp", 0), reverse=True)
 
-    with open(DATA_FILE, "w", encoding="utf-8") as fh:
-        json.dump(listings, fh, ensure_ascii=False, indent=2)
+    if not args.offline and not DRY_RUN:
+        with open(DATA_FILE, "w", encoding="utf-8") as fh:
+            json.dump(listings, fh, ensure_ascii=False, indent=2)
 
     texts, added = merge_texts(listings)
-    cards = [c for c in (card(l, texts.get(str(l["listing_id"]), {})) for l in listings) if c]
-    if not cards:
+
+    def entry(l):
+        return texts.get(str(l["listing_id"]), {})
+
+    highlights, rest = split_highlights(listings, texts)
+    features = [c for c in (feature(l, entry(l), i) for i, l in enumerate(highlights)) if c]
+    tiles = [c for c in (tile(l, entry(l)) for l in rest) if c]
+    if not features and not tiles:
         sys.exit("Keine Listings mit Bildern gefunden, Website bleibt unveraendert.")
 
-    update_site(cards, hero_block(listings, texts))
-    print(f"{len(cards)} Produkte uebernommen:")
-    for l in listings:
-        e = texts.get(str(l["listing_id"]), {})
-        print(f"  \u00b7 {e.get('name', '')}  {price(l, e)}")
+    update_site(tiles, features, hero_block(highlights, rest, texts))
+    print(f"\n{len(features) + len(tiles)} Produkte uebernommen"
+          + (" (Trockenlauf, nichts gespeichert)" if DRY_RUN else "") + ":")
+    for l in highlights:
+        print(f"  * {entry(l).get('name', '')}  {price(l, entry(l))}  (Highlight {entry(l).get('highlight')})")
+    for l in rest:
+        print(f"  \u00b7 {entry(l).get('name', '')}  {price(l, entry(l))}")
+    if len(highlights) < MAX_HIGHLIGHTS:
+        print(f"\nHinweis: nur {len(highlights)} von {MAX_HIGHLIGHTS} Highlights aktiv "
+              f"(\"highlight\": 1-{MAX_HIGHLIGHTS} in {TEXT_FILE} setzen).")
     if added:
         print(f"\nNeu in {TEXT_FILE} eingetragen: " + ", ".join(added))
-        print(f"Namen und Texte kannst du dort anpassen, dann Skript nochmal starten.")
+        print("Namen und Texte kannst du dort anpassen, dann Skript nochmal starten.")
 
 
 if __name__ == "__main__":

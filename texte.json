@@ -1,10 +1,15 @@
 {
   "_hinweis": "Hier bestimmst du, wie die Produkte auf der Website heissen. name = Ueberschrift, text = Satz darunter, info = Zeile links unten, preis_ab = true, wenn der Preis je nach Variante steigt. Neue Etsy-Produkte werden beim naechsten Lauf automatisch ergaenzt.",
+  "_hinweis_highlights": "Grosse Karten oben in der Kollektion: highlight = 1 bis 4 (Reihenfolge), kategorie = kleine Zeile oben (z.B. HERBST), highlight_name / highlight_text = optional eigener Titel und Text nur fuer die grosse Karte (sonst name / text). Die Highlights 1-3 bilden ausserdem die Bild-Collage ganz oben. Alle anderen Produkte erscheinen als Kacheln unter 'Ausserdem im Shop'.",
   "4569972046": {
     "name": "Deko Kürbisse 3er Set",
-    "text": "Deko-Kürbisse im skandinavischen Stil – 3er Set in Ivory, Sand &amp; Terracotta",
+    "text": "Deko-Kürbisse im skandinavischen Stil – 3er Set in Ivory, Sand & Terracotta",
     "info": "10 verfügbar",
-    "preis_ab": false
+    "preis_ab": false,
+    "highlight": 1,
+    "kategorie": "HERBST",
+    "highlight_name": "Nordic Pumpkins",
+    "highlight_text": "Drei Kürbisse im skandinavischen Stil – Ivory, Sand und Terracotta, mehrfarbig gedruckt."
   },
   "4566170874": {
     "name": "Dekoschale Herbst",
@@ -40,18 +45,30 @@
     "name": "Tannenzapfen Kranz aus dem 3D-Druck",
     "text": "Ein Kranz aus lauter Zapfen – ganz ohne Harz, Nadeln und Krümel",
     "info": "5 verfügbar",
-    "preis_ab": false
+    "preis_ab": false,
+    "highlight": 2,
+    "kategorie": "WINTER",
+    "highlight_name": "Tannenzapfen Kranz",
+    "highlight_text": "Ein Kranz aus Zapfen, der nie nadelt – für Tür, Tisch oder Wand."
   },
   "4595783061": {
     "name": "Dekoschale Sonnenblume",
     "text": "Diese Sonnenblumen-Schale wird bei mir in der Steiermark im 3D-Druck hergestellt. Ein Kranz aus fein strukturierten Blütenblättern in Senfgelb umrahmt eine flache, dunkelbraune Mitte mit dem …",
     "info": "5 verfügbar",
-    "preis_ab": false
+    "preis_ab": false,
+    "highlight": 4,
+    "kategorie": "SCHALE",
+    "highlight_name": "Sonnenblume",
+    "highlight_text": "Dekoschale in Gelb und Braun – für Schlüssel, Schmuck oder einfach als Blickfang."
   },
   "4610337039": {
     "name": "Schneeflocken Serviettenring",
     "text": "Mach aus einer einfachen Serviette einen echten Hingucker auf deiner Festtafel.",
     "info": "20 verfügbar",
-    "preis_ab": false
+    "preis_ab": false,
+    "highlight": 3,
+    "kategorie": "WINTER",
+    "highlight_name": "Schneeflocke",
+    "highlight_text": "Filigraner Serviettenring mit sechs verzierten Armen – macht jede Festtafel zum Hingucker."
   }
 }

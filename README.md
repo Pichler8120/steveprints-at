@@ -99,7 +99,45 @@ Die `texte.json` enthält Namen und Kurzbeschreibungen für deine Produkte:
 - **info**: Maße oder Verfügbarkeit (z.B. "3 verfügbar")
 - **preis_ab**: `true`, wenn der Preis je nach Variante variiert
 
+### Highlights (große gestapelte Karten)
+
+Bis zu 4 Produkte bekommen eine große Karte in der „Kollektion“. Die übrigen erscheinen als Kacheln unter „Außerdem im Shop“. Highlight 1–3 bilden außerdem die Bild-Collage ganz oben.
+
+```json
+  "4569972046": {
+    "name": "Deko Kürbisse 3er Set",
+    "highlight": 1,
+    "kategorie": "HERBST",
+    "highlight_name": "Nordic Pumpkins",
+    "highlight_text": "Drei Kürbisse im skandinavischen Stil …"
+  }
+```
+
+- **highlight**: 1–4 = Position der großen Karte (weglassen = normale Kachel)
+- **kategorie**: kleine Zeile oben auf der Karte („01 / HERBST“)
+- **highlight_name** / **highlight_text**: optional eigener Titel/Text nur für die große Karte (sonst `name` / `text`)
+
+Ist ein Highlight-Produkt auf Etsy nicht mehr aktiv, fällt die Karte beim nächsten Sync automatisch weg.
+
 Nach der Bearbeitung der `texte.json` einfach `etsy_sync.py` nochmal laufen lassen.
+
+### Sync-Optionen
+
+```bash
+python3 etsy_sync.py --dry-run    # Etsy abfragen, aber nichts speichern – zeigt die Änderungen an index.html
+python3 etsy_sync.py --offline    # ohne Etsy: Seite aus products.json + texte.json neu bauen
+```
+
+## 🎨 Design
+
+Design „Galerie“: Stile in `site.css` (gemeinsam für `index.html` und `datenschutz.html`), Schriften lokal in `fonts/`.
+Scroll-Animationen sind reines CSS und nur aktiv, wenn der Browser `animation-timeline` kann und keine reduzierte Bewegung eingestellt ist – sonst wird alles statisch angezeigt.
+
+Der Druck-Effekt zeigt 312 Schichten à 0,2 mm (Kürbis-Set). Ändern: `index.html` (Zahl + Text) und `site.css` (`@keyframes cnt`).
+
+## 🔍 Vorschau
+
+Automatisch deployt wird nur `main` (= Live-Seite). Für eine Vorschau eines anderen Branches: GitHub → Actions → „Deploy to Cloudflare Pages“ → „Run workflow“ → Branch auswählen. Das Ergebnis liegt unter `https://<branch>.steveprints-at.pages.dev`; die Live-Seite bleibt unverändert.
 
 ## 🔄 Manueller Sync
 
