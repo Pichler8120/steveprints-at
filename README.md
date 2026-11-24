@@ -131,6 +131,8 @@ python3 etsy_sync.py --offline    # ohne Etsy: Seite aus products.json + texte.j
 ## 🎨 Design
 
 Design „Galerie“: Stile in `site.css` (gemeinsam für `index.html` und `datenschutz.html`), Schriften lokal in `fonts/`.
+
+**Nach jeder Änderung an `site.css`** die Versionsnummer im Link hochzählen (`site.css?v=2` → `?v=3`, in `index.html` UND `datenschutz.html`). Cloudflare lässt Browser die CSS 4 Stunden zwischenspeichern – ohne neue Nummer sehen Besucher sonst noch das alte Design.
 Scroll-Animationen sind reines CSS und nur aktiv, wenn der Browser `animation-timeline` kann und keine reduzierte Bewegung eingestellt ist – sonst wird alles statisch angezeigt.
 
 ### Druck-Effekt („Scroll – und es wird gedruckt“)
