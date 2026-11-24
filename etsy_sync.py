@@ -21,9 +21,11 @@ Seitenaufbau (Design "Galerie"):
     HERO        Bild-Collage oben  = Highlights 1, 3, 2
     HIGHLIGHTS  4 grosse gestapelte Karten = Produkte mit "highlight": 1-4 in texte.json
     PRODUCTS    Kacheln "Ausserdem im Shop" = alle uebrigen aktiven Produkte
+    PRINT       Druck-Effekt: jeden Tag ein anderes Produkt (Rotation nach Datum)
 """
 
 import argparse
+import datetime
 import difflib
 import html
 import hashlib
@@ -51,6 +53,12 @@ HERO_START = "<!-- HERO:START -->"
 HERO_END = "<!-- HERO:END -->"
 HL_START = "<!-- HIGHLIGHTS:START -->"
 HL_END = "<!-- HIGHLIGHTS:END -->"
+PRINT_START = "<!-- PRINT:START -->"
+PRINT_END = "<!-- PRINT:END -->"
+
+# Druck-Effekt: Schichthoehe im Text, Bereich fuer die automatisch erzeugte Schichtzahl
+LAYER_HEIGHT = "0,2"
+LAYER_RANGE = (180, 420)
 
 # Anzahl der grossen Highlight-Karten (Farbthemen t1-t4 in site.css)
 MAX_HIGHLIGHTS = 4
@@ -238,6 +246,12 @@ def merge_texts(listings):
         "Die Highlights 1-3 bilden ausserdem die Bild-Collage ganz oben. Alle anderen "
         "Produkte erscheinen als Kacheln unter 'Ausserdem im Shop'."
     ))
+    texts.setdefault("_hinweis_druck", (
+        "Druck-Effekt ('Scroll - und es wird gedruckt'): jeden Tag ein anderes Produkt. "
+        "druck = false nimmt ein Produkt aus der Rotation, druck_schichten = eigene "
+        "Schichtzahl (sonst eine feste Zahl je Produkt), druck_bild = welches Etsy-Foto "
+        "(1 = erstes)."
+    ))
     added = []
     for l in listings:
         key = str(l["listing_id"])
@@ -344,18 +358,75 @@ def hero_block(highlights, rest, texts):
     return HERO_START + "\n" + "\n".join(items) + "\n      " + HERO_END
 
 
+def layer_count(listing, entry):
+    """Eigene Zahl aus texte.json, sonst eine feste, plausible Zahl je Produkt (aus der Listing-ID)."""
+    try:
+        own = int(entry.get("druck_schichten") or 0)
+    except (TypeError, ValueError):
+        own = 0
+    if own > 0:
+        return own
+    lo, hi = LAYER_RANGE
+    digest = hashlib.sha256(str(listing["listing_id"]).encode()).digest()
+    return lo + int.from_bytes(digest[:4], "big") % (hi - lo + 1)
+
+
+def print_block(listings, texts, day=None):
+    """Druck-Effekt: Produkt des Tages, reihum durch alle Produkte mit Bild (ohne druck = false)."""
+    pool = []
+    for l in sorted(listings, key=lambda x: x["listing_id"]):  # stabile Reihenfolge
+        entry = texts.get(str(l["listing_id"]), {})
+        if entry.get("druck") is False or not l.get("images"):
+            continue
+        pool.append((l, entry))
+    if not pool:
+        return ""
+    day = day or datetime.date.today()
+    l, entry = pool[day.toordinal() % len(pool)]
+
+    try:
+        img_index = max(int(entry.get("druck_bild") or 1) - 1, 0)
+    except (TypeError, ValueError):
+        img_index = 0
+    images = l["images"]
+    img = images[img_index] if img_index < len(images) else images[0]
+    name = esc(entry.get("highlight_name") or entry.get("name") or short_name(l))
+    alt = esc(entry.get("name") or short_name(l))
+    n = layer_count(l, entry)
+    return f"""{PRINT_START}
+  <div class="print-stage" style="--layers:{n}">
+    <div class="print-copy">
+      <p class="eyebrow">Live aus der Werkstatt</p>
+      <h2 id="print-title" class="display">Scroll \u2013 und es wird gedruckt.</h2>
+      <div class="layer-count">
+        <span class="lbl">SCHICHT</span>
+        <span class="num"><span class="static">{n}</span></span>
+        <span class="tot">/ {n}</span>
+      </div>
+      <p class="print-done"><strong>Fertig.</strong> {name}, {LAYER_HEIGHT}&nbsp;mm pro Schicht, gedruckt in Peggau \u2013 und genau so entsteht jedes St\u00fcck, das du bei mir bestellst.</p>
+    </div>
+    <div class="print-bed">
+      <div class="grid" aria-hidden="true"></div>
+      <img src="{img}" alt="{alt}, Schicht f\u00fcr Schicht gedruckt" loading="lazy" decoding="async">
+      <div class="lines" aria-hidden="true"></div>
+      <div class="nozzle" aria-hidden="true"><div class="beam"></div><div class="tip"></div></div>
+    </div>
+  </div>
+  {PRINT_END}"""
+
+
 # ----------------------------------------------------------------- Schreiben
 
 def replace_block(page, start, end, block):
     return re.sub(re.escape(start) + ".*?" + re.escape(end), lambda _: block, page, flags=re.S)
 
 
-def update_site(tiles, features, hero):
+def update_site(tiles, features, hero, printed=""):
     if not os.path.exists(SITE_FILE):
         sys.exit(f"{SITE_FILE} nicht gefunden. Skript in denselben Ordner legen.")
     with open(SITE_FILE, encoding="utf-8") as fh:
         old = fh.read()
-    for a, b in ((START, END), (HL_START, HL_END), (HERO_START, HERO_END)):
+    for a, b in ((START, END), (HL_START, HL_END), (HERO_START, HERO_END), (PRINT_START, PRINT_END)):
         if a not in old or b not in old:
             sys.exit(f"Marker {a} / {b} fehlen in {SITE_FILE}.")
 
@@ -364,6 +435,8 @@ def update_site(tiles, features, hero):
                          HL_START + "\n" + "\n\n".join(features) + "\n      " + HL_END)
     if hero:
         page = replace_block(page, HERO_START, HERO_END, hero)
+    if printed:
+        page = replace_block(page, PRINT_START, PRINT_END, printed)
 
     if DRY_RUN:
         diff = list(difflib.unified_diff(
@@ -410,13 +483,18 @@ def main():
     if not features and not tiles:
         sys.exit("Keine Listings mit Bildern gefunden, Website bleibt unveraendert.")
 
-    update_site(tiles, features, hero_block(highlights, rest, texts))
+    printed = print_block(listings, texts)
+    update_site(tiles, features, hero_block(highlights, rest, texts), printed)
     print(f"\n{len(features) + len(tiles)} Produkte uebernommen"
           + (" (Trockenlauf, nichts gespeichert)" if DRY_RUN else "") + ":")
     for l in highlights:
         print(f"  * {entry(l).get('name', '')}  {price(l, entry(l))}  (Highlight {entry(l).get('highlight')})")
     for l in rest:
         print(f"  \u00b7 {entry(l).get('name', '')}  {price(l, entry(l))}")
+    if printed:
+        today = re.search(r"--layers:(\d+)", printed).group(1)
+        who = re.search(r'alt="(.*?), Schicht', printed).group(1)
+        print(f"\nDruck-Effekt heute: {html.unescape(who)} ({today} Schichten)")
     if len(highlights) < MAX_HIGHLIGHTS:
         print(f"\nHinweis: nur {len(highlights)} von {MAX_HIGHLIGHTS} Highlights aktiv "
               f"(\"highlight\": 1-{MAX_HIGHLIGHTS} in {TEXT_FILE} setzen).")

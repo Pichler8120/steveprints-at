@@ -1,6 +1,7 @@
 {
   "_hinweis": "Hier bestimmst du, wie die Produkte auf der Website heissen. name = Ueberschrift, text = Satz darunter, info = Zeile links unten, preis_ab = true, wenn der Preis je nach Variante steigt. Neue Etsy-Produkte werden beim naechsten Lauf automatisch ergaenzt.",
   "_hinweis_highlights": "Grosse Karten oben in der Kollektion: highlight = 1 bis 4 (Reihenfolge), kategorie = kleine Zeile oben (z.B. HERBST), highlight_name / highlight_text = optional eigener Titel und Text nur fuer die grosse Karte (sonst name / text). Die Highlights 1-3 bilden ausserdem die Bild-Collage ganz oben. Alle anderen Produkte erscheinen als Kacheln unter 'Ausserdem im Shop'.",
+  "_hinweis_druck": "Druck-Effekt ('Scroll - und es wird gedruckt'): jeden Tag ein anderes Produkt. druck = false nimmt ein Produkt aus der Rotation, druck_schichten = eigene Schichtzahl (sonst eine feste Zahl je Produkt), druck_bild = welches Etsy-Foto (1 = erstes).",
   "4569972046": {
     "name": "Deko Kürbisse 3er Set",
     "text": "Deko-Kürbisse im skandinavischen Stil – 3er Set in Ivory, Sand & Terracotta",
@@ -9,7 +10,8 @@
     "highlight": 1,
     "kategorie": "HERBST",
     "highlight_name": "Nordic Pumpkins",
-    "highlight_text": "Drei Kürbisse im skandinavischen Stil – Ivory, Sand und Terracotta, mehrfarbig gedruckt."
+    "highlight_text": "Drei Kürbisse im skandinavischen Stil – Ivory, Sand und Terracotta, mehrfarbig gedruckt.",
+    "druck_schichten": 312
   },
   "4566170874": {
     "name": "Dekoschale Herbst",

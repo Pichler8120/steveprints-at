@@ -245,8 +245,8 @@ a:hover{color:var(--ink)}
     @keyframes printUp{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
     @keyframes nozUp{from{bottom:0%}to{bottom:100%}}
     @keyframes noz{0%,96%{opacity:1}100%{opacity:0}}
-    /* Schichtzahl des echten Drucks (Kuerbis-Set, 0,2 mm) - bei Aenderung auch in index.html anpassen */
-    @keyframes cnt{from{--n:0}to{--n:312}}
+    /* Zielwert kommt aus style="--layers:N" an .print-stage (setzt etsy_sync.py je nach Produkt des Tages) */
+    @keyframes cnt{from{--n:0}to{--n:var(--layers,312)}}
     @keyframes lines{0%,88%{opacity:.55}100%{opacity:0}}
     @keyframes done{0%,92%{opacity:0;transform:translateY(24px)}100%{opacity:1;transform:none}}
 

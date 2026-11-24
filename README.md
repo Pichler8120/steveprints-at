@@ -133,7 +133,13 @@ python3 etsy_sync.py --offline    # ohne Etsy: Seite aus products.json + texte.j
 Design „Galerie“: Stile in `site.css` (gemeinsam für `index.html` und `datenschutz.html`), Schriften lokal in `fonts/`.
 Scroll-Animationen sind reines CSS und nur aktiv, wenn der Browser `animation-timeline` kann und keine reduzierte Bewegung eingestellt ist – sonst wird alles statisch angezeigt.
 
-Der Druck-Effekt zeigt 312 Schichten à 0,2 mm (Kürbis-Set). Ändern: `index.html` (Zahl + Text) und `site.css` (`@keyframes cnt`).
+### Druck-Effekt („Scroll – und es wird gedruckt“)
+
+Jeden Tag zeigt der Sync ein anderes Produkt (reihum, nach Datum). Steuerung in `texte.json`:
+
+- **druck**: `false` nimmt ein Produkt aus der Rotation (z.B. Osterhase im Winter)
+- **druck_schichten**: eigene Schichtzahl (sonst eine feste Zahl je Produkt zwischen 180 und 420)
+- **druck_bild**: welches Etsy-Foto verwendet wird (1 = erstes)
 
 ## 🔍 Vorschau
 
