@@ -281,3 +281,12 @@ a:hover{color:var(--ink)}
   html{scroll-behavior:auto}
   .collage img,.tile .shot img,.btn{transition:none}
 }
+
+/* ---------------------------------------------------------------- WhatsApp-Button
+   Reiner Link auf wa.me - keine Einbindung, keine Daten an Meta, bevor jemand klickt.
+   Icons: Lucide (message-circle, phone), ISC-Lizenz. */
+.wa{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));z-index:40;display:flex;align-items:center;gap:10px;height:56px;padding:0 20px 0 16px;border-radius:999px;background:#25D366;color:#0E0C0A;text-decoration:none;font-family:var(--body);font-weight:700;font-size:16px;box-shadow:0 10px 30px rgba(14,12,10,.28);transition:transform .2s,box-shadow .2s}
+.wa:hover{color:#0E0C0A;transform:translateY(-2px);box-shadow:0 14px 34px rgba(14,12,10,.34)}
+.wa svg{width:26px;height:26px;flex:0 0 auto}
+@media (max-width:620px){.wa{width:56px;padding:0;justify-content:center}.wa span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}}
+@media (prefers-reduced-motion:reduce){.wa{transition:none}}
